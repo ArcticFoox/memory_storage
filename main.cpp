@@ -3,103 +3,112 @@
 #include<algorithm>
 using namespace std;
 
+struct Sector{
+    char data = 0;
+    char spare[16];
+};
+
 class Block{
     private:
-        Sector sto[3]; // test시 3으로 지정(32b를 기본으로 함)
+        Sector sector[32] = {0, }; // test시 3으로 지정(32b를 기본으로 함)
     public:
-        void sector_write(int, char);
-        void sector_erase(int, char);
-        void sector_read(int);
+        Block(){}
+        ~Block(){}
+        void Flash_write(int, char);
+        void Flash_erase();
+        char Flash_read(int);
 };
 
-struct Sector{
-    char data;
-    char spare[1]; //test시 1로 지정 (16b를 기본으로 함)
-};
-
-void Block::sector_write(int num, char a){
-    if(sto[num].data != 0)
+void Block::Flash_write(int num, char a){
+    if(sector[num].data != 0)
         cout << "error" << "\n";
     else
-        sto[num].data = a;
+        sector[num].data = a;
 }
 
-void Block::sector_erase(int num, char a){
-    Sector tmp[3];
+void Block::Flash_erase(){
     for(int i = 0; i < 3; i++){
-        if(num == i){
-            tmp[i].data = 0;
-        }
-        else{
-            tmp[i].data = sto[i].data;
-        }
-    }
-
-    for(int i = 0; i < 3; i++){
-        sto[i].data = tmp[i].data;
+        sector[i].data = 0;
     }
 }
 
-void Block::sector_read(int num){
-    cout << sto[num].data;
+char Block::Flash_read(int num){
+    return sector[num].data;
 }
 
 
-void init(vector<Block> *api, int n){
-    api->reserve(n);
-}
-
-void Block_write(vector<Block> *api){
-    char c, m;
-    int num;
-    cin >> num >> m;
-    int quotient = num / 3;
-    int rest = num % 3;
-    
-    api[quotient][1].sector_write(rest, m);
-}
-
-void Block_erase(vector<Block> *api){
-    char c, m;
-    int num;
-    cin >> num >> m;
-    int quotient = num / 3;
-    int rest = num % 3;
-    
-    api[quotient][1].sector_erase(rest, m);
-}
-
-int main(){
-    vector<Block> api(3);
-    char c;
+int init(){
     int num;
     cout << "enter the capacity" << "\n";
     cin >> num;
-    init(&api, num);
+    return num * 64;
+}
 
+pair<int, int> convert(int num){
+    pair<int, int> div;
+    div.first = num / 32;
+    div.second = num % 32;
+    return div;
+}
+
+int main(){
+    char c;
+    int num;
+    char p;
+    int size;
+    pair<int, int> div;
+    while(true){
+        string input;
+        cin >> input;
+        if(input == "init"){
+            size = init();
+            break;
+        }
+        else
+            continue;
+    }
+
+    vector<Block> memory(size);
     while(true){
         cin >> c;
         if(c == 'w'){
-           Block_write(&api);
+            cin >> num >> p;
+            div = convert(num);
+            memory[div.first].Flash_write(div.second, p);
         }
 
         else if(c == 'e'){
-           Block_erase(&api);
+            cin >> num >> p;
+            div = convert(num);
+            memory[num].Flash_erase();
         }
 
         else if(c == 'r'){
-            cin >> num >> m;
-            quotient = num / 3;
-            rest = num % 3;
-            api[quotient].sector_read(rest);
+            cin >> num ;
+            div = convert(num);
+            cout << memory[div.first].Flash_read(div.second);
         }
 
         else if(c == 'x'){
             break;
         }
+
+        else if(c == 'a'){
+            for(int i = 0; i < size; i++){
+                for(int j = 0; j < 32; j++){
+                    if(memory[i].Flash_read(j) == 0){
+                        cout << '0' << " ";
+                    }
+                    else
+                        cout << memory[i].Flash_read(j) << " ";
+                }
+                cout << "\n";
+            }
+        }
         else{
             continue;
         }
+        cout << "\n";
     }
     return 0;
 }
