@@ -5,12 +5,12 @@ using namespace std;
 
 struct Sector{
     char data = 0;
-    char spare[16];
+    char spare[16];  //spare
 };
 
 class Block{
     private:
-        Sector sector[32] = {0, }; // test시 3으로 지정(32b를 기본으로 함)
+        Sector sector[32] = {0, }; 
     public:
         Block(){}
         ~Block(){}
@@ -27,7 +27,7 @@ void Block::Flash_write(int num, char a){
 }
 
 void Block::Flash_erase(){
-    for(int i = 0; i < 3; i++){
+    for(int i = 0; i < 32; i++){
         sector[i].data = 0;
     }
 }
@@ -37,11 +37,9 @@ char Block::Flash_read(int num){
 }
 
 
-int init(){
-    int num;
-    cout << "enter the capacity" << "\n";
-    cin >> num;
-    return num * 64;
+int init(int num){
+    cout << num <<" megabytes \n";
+    return num * 64 + 1; // 추가 block 생성
 }
 
 pair<int, int> convert(int num){
@@ -61,11 +59,15 @@ int main(){
         string input;
         cin >> input;
         if(input == "init"){
-            size = init();
+            int num;
+            cin >> num;
+            size = init(num);
             break;
         }
-        else
+        else{
+            cout << "please init a repository \n";
             continue;
+        }
     }
 
     vector<Block> memory(size);
@@ -78,37 +80,23 @@ int main(){
         }
 
         else if(c == 'e'){
-            cin >> num >> p;
-            div = convert(num);
+            cin >> num;
             memory[num].Flash_erase();
         }
 
         else if(c == 'r'){
-            cin >> num ;
+            cin >> num;
             div = convert(num);
-            cout << memory[div.first].Flash_read(div.second);
+            cout << memory[div.first].Flash_read(div.second) << "\n";
         }
-
+        //탈출
         else if(c == 'x'){
             break;
         }
 
-        else if(c == 'a'){
-            for(int i = 0; i < size; i++){
-                for(int j = 0; j < 32; j++){
-                    if(memory[i].Flash_read(j) == 0){
-                        cout << '0' << " ";
-                    }
-                    else
-                        cout << memory[i].Flash_read(j) << " ";
-                }
-                cout << "\n";
-            }
-        }
         else{
             continue;
         }
-        cout << "\n";
     }
     return 0;
 }
