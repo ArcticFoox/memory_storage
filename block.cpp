@@ -10,7 +10,8 @@ struct Sector{
 
 class Block{
     private:
-        Sector sector[32] = {0, }; 
+        //Sector sector[32] = {0, };
+        Sector sector[4] = {0, }; //for test
     public:
         Block(){}
         ~Block(){}
@@ -27,7 +28,8 @@ void Block::Flash_write(int num, char a){
 }
 
 void Block::Flash_erase(){
-    for(int i = 0; i < 32; i++){
+    //for(int i = 0; i < 32; i++){
+    for(int i = 0; i < 4; i++){ //for test
         sector[i].data = 0;
     }
 }
@@ -39,14 +41,39 @@ char Block::Flash_read(int num){
 
 int init(int num){
     cout << num <<" megabytes \n";
-    return num * 64 + 1; // 추가 block 생성
+    //return num * 64 + 1; // 추가 block 생성
+    return num * 8 + 1; //for test
 }
 
 pair<int, int> convert(int num){
     pair<int, int> div;
-    div.first = num / 32;
-    div.second = num % 32;
+    div.first = num / 4;    //for test
+    div.second = num % 4;   //for test
     return div;
+}
+
+void Table_init(int Table[], int size){
+    for(int i = 0; i < size; i++){
+        Table[i] = -1;
+    }
+}
+
+void FTL_write(vector<Block>& memory, int Table[], int num, int num2, char a, int vaild){
+    int cnt = 0;
+    int s_cnt = 0;
+    if(Table[num] == -1){
+        Table[num] = cnt;
+        cnt++;
+        memory[Table[num]].Flash_write(0, a);
+    }
+
+    else if(Table[num] != -1){
+
+    }
+}
+
+void FTL_read(){
+
 }
 
 int main(){
@@ -71,6 +98,8 @@ int main(){
     }
 
     vector<Block> memory(size);
+    int *Table = new int[size]; //for test
+    Table_init(Table, size);
     while(true){
         cin >> c;
         if(c == 'w'){
