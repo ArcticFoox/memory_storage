@@ -5,7 +5,7 @@ using namespace std;
 
 struct Sector{
     char data = 0;
-    char spare[16];  //spare
+    int vaild = 0;  //spare
 };
 
 class Block{
@@ -16,8 +16,11 @@ class Block{
         Block(){}
         ~Block(){}
         void Flash_write(int, char);
+        void Flash_write(int, char, int);
+        void Flash_write(int, int);
         void Flash_erase();
         char Flash_read(int);
+        int Flash_read_vaild(int);
 };
 
 void Block::Flash_write(int num, char a){
@@ -27,17 +30,34 @@ void Block::Flash_write(int num, char a){
         sector[num].data = a;
 }
 
+void Block::Flash_write(int num, char a,  int vaild){
+    if(sector[num].data != 0)
+        cout << "error" << "\n";
+    else{
+        sector[num].data = a;
+        sector[num].vaild = vaild;
+    }
+}
+
+void Block::Flash_write(int num, int vaild){
+    sector[num].vaild = vaild;
+}
+
 void Block::Flash_erase(){
     //for(int i = 0; i < 32; i++){
     for(int i = 0; i < 4; i++){ //for test
         sector[i].data = 0;
     }
+    sector[0].vaild = 0;
 }
 
 char Block::Flash_read(int num){
     return sector[num].data;
 }
 
+int Block::Flash_read_vaild(int num){
+    return sector[num].vaild;
+}
 
 int init(int num){
     cout << num <<" megabytes \n";
@@ -58,22 +78,67 @@ void Table_init(int Table[], int size){
     }
 }
 
-void FTL_write(vector<Block>& memory, int Table[], int num, int num2, char a, int vaild){
-    int cnt = 0;
+void FTL_write(vector<Block>& memory, int Table[], int num, int num2, char a, int& cnt, int size){
     int s_cnt = 0;
     if(Table[num] == -1){
         Table[num] = cnt;
         cnt++;
-        memory[Table[num]].Flash_write(0, a);
+        if(!memory[Table[num]].Flash_read_vaild(0)){
+            if(num2 = 0)
+                memory[Table[num]].Flash_write(num2, a, 1);
+            else{
+                memory[Table[num]].Flash_write(num2, 0, 1);
+                memory[Table[num]].Flash_write(num2, a);
+            }
+        }
+        else
+            memory[Table[num]].Flash_write(num2, a);
     }
 
-    else if(Table[num] != -1){
+    else{
+        if(memory[Table[num]].Flash_read(num2)){
+            if(cnt < size){
+                int prev = Table[num];
+                Table[num] = cnt;
+                cnt++;
+                memory[Table[num]].Flash_write(num2, a);
+                for(int i = 0; i < 4; i++){
+                    if(num2 == i)
+                        continue;
+                    else if(memory[prev].Flash_read(i)){
+                        memory[Table[num]].Flash_write(i, memory[prev].Flash_read(i));
+                    }
+                    else
+                        continue;
+               }
+            }
 
+            else if(cnt == size - 1){
+                int toggle_cnt = 0;
+                for(int i = 0; i < size; i++){
+                    if(memory[i].Flash_read_vaild(0) == 1){
+                        toggle_cnt++;
+                    }
+                }
+            }
+        }
+        else{
+            if(!memory[Table[num]].Flash_read_vaild(0)){
+                if(num2 = 0)
+                    memory[Table[num]].Flash_write(num2, a, 1);
+                else{
+                    memory[Table[num]].Flash_write(num2, 0, 1);
+                    memory[Table[num]].Flash_write(num2, a);
+                }
+            }
+            else
+                memory[Table[num]].Flash_write(num2, a);
+            }
     }
 }
 
-void FTL_read(){
-
+int FTL_read(vector<Block>& memory, int Table[], int num){
+    
 }
 
 int main(){
