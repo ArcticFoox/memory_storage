@@ -173,6 +173,18 @@ pair<int, pair<int, int>> File_input(vector<Sector>* memory, int Table[], int &c
     return counter;
 }
 
+void File_output(int W_counter, int E_counter, int R_counter){
+    ofstream writeFile;
+    writeFile.open("output.txt");
+    writeFile.clear();
+    writeFile << W_counter;
+    writeFile.write(" ", 1);
+    writeFile << E_counter;
+    writeFile.write(" ", 1);
+    writeFile << R_counter;
+    writeFile.close(); 
+}
+
 int main(){
     char c , p;
     int num, size;
@@ -238,7 +250,7 @@ int main(){
         }
         //탈출
         else if(c == 'x'){
-            cout << W_counter << " " << E_counter << " " << R_counter << "\n";
+            File_output(W_counter, E_counter, R_counter);
             break;
         }
 
