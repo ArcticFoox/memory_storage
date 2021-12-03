@@ -150,7 +150,7 @@ pair<int, pair<int, int>> File_input(vector<Sector>* memory, int Table[], int &c
     ifstream readfromFile;
     pair<int, pair<int, int>> counter;
     int W_counter = 0, E_counter = 0, R_counter = 0;
-    readfromFile.open("input.txt");
+    readfromFile.open("Input.txt");
     // 불러올 파일이 있을 시 시행
     if(readfromFile.is_open()){
         while(!readfromFile.eof()){

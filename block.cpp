@@ -88,9 +88,12 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
             W_counter++;
         }
         else{
-            memory[size].Flash_write_vaild(0, 1);
+            if(memory[size].Flash_read_vaild(0) == 0){
+                memory[size].Flash_write_vaild(0, 1);
+                W_counter++;
+            }   
             memory[size].Flash_write(num2, a);
-            W_counter += 2;
+            W_counter++;
         }
         for(int i = 0; i < 32; i++){
             R_counter++;
@@ -130,28 +133,34 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
         }
     }
     else{
-        if(Table[num] == -1){
-            Table[num] = cnt;
-            cnt++;
-            if(!memory[Table[num]].Flash_read_vaild(0)){
+        if(cnt == size - 1){
+            int toggle_cnt = 0;
+            for(int i = 0; i < size; i++){
                 R_counter++;
-                if(num2 == 0){
-                    memory[Table[num]].Flash_write(num2, a, 1);
-                    W_counter++;
+                if(memory[i].Flash_read_vaild(0) == 1){
+                    toggle_cnt++;
                 }
-                else{
-                    memory[Table[num]].Flash_write_vaild(0, 1);
-                    memory[Table[num]].Flash_write(num2, a);
-                    W_counter += 2;
-                }
+            }
+
+            if(toggle_cnt == size - 1){
+                toggle = 1;
             }
             else{
-                memory[Table[num]].Flash_write(num2, a);
-                W_counter++;
+                for(int i = 0; i < size; i++){
+                    R_counter++;
+                    if(memory[i].Flash_read_vaild(0) == 2){
+                        memory[i].Flash_erase();
+                    }
+                }
+                cnt = 0;
             }
         }
-
         else{
+            if(Table[num] == -1){
+                Table[num] = cnt;
+                cnt++;
+            }
+            
             if(memory[Table[num]].Flash_read(num2)){
                 R_counter++;
                 if(cnt < size){
@@ -164,8 +173,9 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                         }
                         else{
                             memory[cnt].Flash_write_vaild(0, 1);
+                            W_counter++;
                             memory[cnt].Flash_write(num2, a);
-                            W_counter += 2;
+                            W_counter++;
                         }
                         for(int i = 0; i < 32; i++){
                             R_counter++;
@@ -205,27 +215,25 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                                 memory[i].Flash_erase();
                             }
                         }
+                        cnt = 0;
                     }
                 }
             }
             else{
-                if(!memory[Table[num]].Flash_read_vaild(0)){
-                    R_counter++;
-                    if(num2 = 0){
-                        memory[Table[num]].Flash_write(num2, a, 1);
+                if(num2 == 0){
+                    memory[Table[num]].Flash_write(num2, a, 1);
+                    W_counter++;
+                }
+                else{
+                    if(memory[Table[num]].Flash_read_vaild(0) == 0){
+                        memory[Table[num]].Flash_write_vaild(0, 1);
                         W_counter++;
                     }
-                    else{
-                        memory[Table[num]].Flash_write_vaild(0, 1);
-                        memory[Table[num]].Flash_write(num2, a);
-                        W_counter += 2;
-                    }
-                }
-                else
                     memory[Table[num]].Flash_write(num2, a);
                     W_counter++;
                 }
-        }
+            }
+        }   
     }
     counter.first = W_counter;
     counter.second.first = E_counter;
@@ -279,6 +287,42 @@ void File_output(int W_counter, int E_counter, int R_counter){
     writeFile.close(); 
 }
 
+void File_output_Table(int Table[], int size){
+    ofstream writeFile;
+    writeFile.open("output_table.txt");
+    writeFile.clear();
+    for(int i = 0; i < size; i++){
+        writeFile << i;
+        writeFile.write(" ", 1);
+        writeFile << Table[i];
+        writeFile.write("\n", 1);
+    }
+    
+    writeFile.close(); 
+}
+
+void File_output_memory(vector<Block>&memory, int size){
+    ofstream writeFile;
+    writeFile.open("output_memory.txt");
+    writeFile.clear();
+    for(int i = 0; i < size; i++){
+        for(int j = 0; j < 32; j++){
+            writeFile << i;
+            writeFile.write(" ", 1);
+            writeFile << j;
+            writeFile.write(" ", 1);
+            writeFile << memory[i].Flash_read(j);
+            if(j == 0){
+                writeFile.write(" ", 1);
+                writeFile << memory[i].Flash_read_vaild(j);
+            }
+            writeFile.write("\n", 1);
+        }
+    }
+    
+    writeFile.close(); 
+}
+
 int main(){
     pair<int, pair<int, int>> counter;
     int W_counter = 0, E_counter = 0, R_counter = 0;
@@ -303,7 +347,7 @@ int main(){
     }
 
     vector<Block> memory(size);
-    int *Table = new int[size]; //for test
+    int *Table = new int[size - 1]; //for test
     Table_init(Table, size);
     counter = File_input(memory, Table, cnt, size, toggle);
     W_counter += counter.first;
@@ -338,6 +382,8 @@ int main(){
 
         else if(c == 'x'){
             File_output(W_counter, E_counter, R_counter);
+            File_output_Table(Table, size);
+            File_output_memory(memory, size);
             break;
         }
 
