@@ -157,6 +157,9 @@ pair<int, pair<int, int>> File_input(vector<Sector>* memory, int Table[], int &c
             char w, a;
             int num;
             readfromFile >> w;
+            if(w == 'x'){
+                break;
+            }
             readfromFile >> num;
             readfromFile >> a;
 
