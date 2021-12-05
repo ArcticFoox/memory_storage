@@ -6,7 +6,7 @@ using namespace std;
 
 struct Sector{
     char data = 0;
-    int vaild = 0;  //spare
+    int valid = 0;  //spare
 };
 
 class Block{
@@ -17,10 +17,10 @@ class Block{
         ~Block(){}
         void Flash_write(int, char);  //기본적인 쓰기
         void Flash_write(int, char, int); //0번 sector에 상태 표기를 위한 쓰기
-        void Flash_write_vaild(int, int); //0번 sector에 상태 표기를 위한 쓰기
+        void Flash_write_valid(int, int); //0번 sector에 상태 표기를 위한 쓰기
         void Flash_erase();
         char Flash_read(int);
-        int Flash_read_vaild(int); //sector에 상태 확인을 위한 읽기
+        int Flash_read_valid(int); //sector에 상태 확인을 위한 읽기
 };
 // 기본적인 쓰기
 void Block::Flash_write(int num, char a){
@@ -29,35 +29,35 @@ void Block::Flash_write(int num, char a){
     else
         sector[num].data = a;
 }
-
-void Block::Flash_write(int num, char a,  int vaild){
+// 상태 표기를 위한 valid를 사용한 쓰기
+void Block::Flash_write(int num, char a,  int valid){
     if(sector[num].data != 0)
         cout << "error" << "\n";
     else{
         sector[num].data = a;
-        sector[num].vaild = vaild;
+        sector[num].valid = valid;
     }
 }
-
-void Block::Flash_write_vaild(int num, int vaild){
-    sector[num].vaild = vaild;
+// 상태 표기를 위한 valid를 사용한 쓰기
+void Block::Flash_write_valid(int num, int valid){
+    sector[num].valid = valid;
 }
-
+// 삭제 함수
 void Block::Flash_erase(){
     for(int i = 0; i < 32; i++){
         sector[i].data = 0;
     }
-    sector[0].vaild = 0;
+    sector[0].valid = 0;
 }
-
+// 읽기 함수
 char Block::Flash_read(int num){
     return sector[num].data;
 }
-
-int Block::Flash_read_vaild(int num){
-    return sector[num].vaild;
+// 상태를 읽기 위한 함수
+int Block::Flash_read_valid(int num){
+    return sector[num].valid;
 }
-
+// init 함수
 int init(int num){
     cout << num <<" megabytes \n";
     return num * 64 + 1; // 1개의 추가 block 생성
@@ -102,12 +102,14 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
         //추가 블럭에 있던 값들을 다시 PBN에 복사
         for(int i = 0; i < 32; i++){
             if(i == 0){
+                // 0 번째는 상태 표기를 위해 따로 작성
                 if(memory[size - 1].Flash_read(i)){
                     memory[Table[num]].Flash_write(i, memory[size - 1].Flash_read(i), 1);
                     W_counter++;
                 }
+                // 0 번째에 값이 없더라도 상태 표기를 위해 따로 작성
                 else{
-                    memory[Table[num]].Flash_write_vaild(i, 1);
+                    memory[Table[num]].Flash_write_valid(i, 1);
                     W_counter++;
                 }
             }
@@ -139,17 +141,15 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                 int toggle_cnt = 0;
                 for(int i = 0; i < size - 1; i++){
                     R_counter++;
-                    if(memory[i].Flash_read_vaild(0) == 1){
+                    if(memory[i].Flash_read_valid(0) == 1){
                         toggle_cnt++;
                     }
                 }
 
                 if(toggle_cnt == size - 1){
                     toggle = 1;
-                    cout << "toggle on\n";
                     memory[size - 1].Flash_write(num2, a);
                     W_counter++;
-                    cout << "start to copy to additional block\n";
                     for(int i = 0; i < 32; i++){
                         if(num2 == i)
                             continue;
@@ -162,7 +162,6 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
 
                     memory[Table[num]].Flash_erase();
                     E_counter++;
-                    cout << "start to paste to block\n";
                     for(int i = 0; i < 32; i++){
                         if(i == 0){
                             if(memory[size - 1].Flash_read(i)){
@@ -170,7 +169,7 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                                 W_counter++;
                             }
                             else{
-                                memory[Table[num]].Flash_write_vaild(i, 1);
+                                memory[Table[num]].Flash_write_valid(i, 1);
                                 W_counter++;
                             }
                         }
@@ -188,10 +187,9 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                     cnt = -1;
                 }
                 else{
-                    cout << "Erase\n";
                     for(int i = 0; i < size - 1; i++){
                         R_counter++;
-                        if(memory[i].Flash_read_vaild(0) == 2){
+                        if(memory[i].Flash_read_valid(0) == 2){
                             memory[i].Flash_erase();
                             E_counter++;
                         }
@@ -204,15 +202,14 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                 int prev = Table[num];
                 //비어있는 block 검색
                 while(cnt < size - 1){
-                    if(memory[cnt].Flash_read_vaild(0) == 0){
+                    if(memory[cnt].Flash_read_valid(0) == 0){
                         R_counter++;
-                        cout << "copy and paste\n";
                         if(num2 == 0){
                             memory[cnt].Flash_write(num2, a, 1);
                             W_counter++;
                         }
                         else{
-                            memory[cnt].Flash_write_vaild(0, 1);
+                            memory[cnt].Flash_write_valid(0, 1);
                             W_counter++;
                             memory[cnt].Flash_write(num2, a);
                             W_counter++;
@@ -230,7 +227,7 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                                 continue;
                         }
                     //원본 block를 유효값이 없다고 표시
-                    memory[prev].Flash_write_vaild(0, 2);
+                    memory[prev].Flash_write_valid(0, 2);
                     W_counter++;
                     Table[num] = cnt;
                     cnt++;
@@ -244,17 +241,15 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                     int toggle_cnt = 0;
                     for(int i = 0; i < size - 1; i++){
                         R_counter++;
-                        if(memory[i].Flash_read_vaild(0) == 1){
+                        if(memory[i].Flash_read_valid(0) == 1){
                             toggle_cnt++;
                         }
                     }
 
                     if(toggle_cnt == size - 1){
                         toggle = 1;
-                        cout << "toggle on\n";
                         memory[size - 1].Flash_write(num2, a);
                         W_counter++;
-                        cout << "start to copy to additional block\n";
                         for(int i = 0; i < 32; i++){
                             if(num2 == i)
                                 continue;
@@ -267,7 +262,6 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
 
                     memory[Table[num]].Flash_erase();
                     E_counter++;
-                    cout << "start to paste to block\n";
                     for(int i = 0; i < 32; i++){
                         if(i == 0){
                             if(memory[size - 1].Flash_read(i)){
@@ -275,7 +269,7 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                                 W_counter++;
                             }
                             else{
-                                memory[Table[num]].Flash_write_vaild(i, 1);
+                                memory[Table[num]].Flash_write_valid(i, 1);
                                 W_counter++;
                             }
                         }
@@ -293,10 +287,9 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
                     cnt = -1;
                     }
                     else{
-                        cout << "Erase\n";
                         for(int i = 0; i < size - 1; i++){
                             R_counter++;
-                            if(memory[i].Flash_read_vaild(0) == 2){
+                            if(memory[i].Flash_read_valid(0) == 2){
                                 memory[i].Flash_erase();
                                 E_counter++;
                             }
@@ -308,14 +301,13 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
         }
         else{
             //offset이 비어있을 경우
-            cout << "just write\n";
             if(num2 == 0){
                 memory[Table[num]].Flash_write(num2, a, 1);
                 W_counter++;
             }
             else{
-                if(memory[Table[num]].Flash_read_vaild(0) == 0){
-                    memory[Table[num]].Flash_write_vaild(0, 1);
+                if(memory[Table[num]].Flash_read_valid(0) == 0){
+                    memory[Table[num]].Flash_write_valid(0, 1);
                     W_counter++;
                 }
                 memory[Table[num]].Flash_write(num2, a);
@@ -330,7 +322,7 @@ pair<int, pair<int, int>> FTL_write(vector<Block>& memory, int Table[], int num,
 }
 
 void FTL_read(vector<Block>& memory, int Table[], int num, int num2){
-    cout << memory[Table[num]].Flash_read(num2) << "\n";
+    cout << Table[num] << " " << memory[Table[num]].Flash_read(num2) << "\n";
 }
 
 pair<int, pair<int, int>> File_input(vector<Block>& memory, int Table[], int &cnt, int size, bool& toggle){
@@ -405,7 +397,7 @@ void File_output_memory(vector<Block>&memory, int size){
             writeFile << memory[i].Flash_read(j);
             if(j == 0){
                 writeFile.write(" ", 1);
-                writeFile << memory[i].Flash_read_vaild(j);
+                writeFile << memory[i].Flash_read_valid(j);
             }
             writeFile.write("\n", 1);
         }
